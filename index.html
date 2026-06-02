@@ -104,6 +104,55 @@
   .send:disabled { opacity: .4; cursor: not-allowed; }
   .send svg { width: 19px; height: 19px; }
   .foot { width: 100%; max-width: 740px; text-align: center; font-size: 11.5px; color: var(--ink-soft); margin-top: 12px; }
+  .paywall { padding: 26px 24px 24px; text-align: center; }
+  .pw-badge { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--amber); background: #f7ecdf; padding: 5px 11px; border-radius: 999px; margin-bottom: 16px; }
+  .pw-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 25px; letter-spacing: -.02em; margin: 0 0 8px; }
+  .pw-sub { color: var(--ink-soft); font-size: 14.5px; line-height: 1.55; max-width: 42ch; margin: 0 auto 22px; }
+  .pw-sub b { color: var(--green-deep); }
+  .pw-plan { border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(180deg, #fffefa, var(--card)); padding: 20px 20px 22px; max-width: 360px; margin: 0 auto; box-shadow: var(--shadow); }
+  .pw-plan-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .pw-plan-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 19px; }
+  .pw-plan-price { font-family: 'Fraunces', serif; font-weight: 600; font-size: 30px; color: var(--green-deep); letter-spacing: -.02em; }
+  .pw-plan-price .cur { font-size: 16px; color: var(--ink-soft); font-weight: 500; margin-right: 1px; }
+  .pw-plan-price .per { font-size: 13px; color: var(--ink-soft); font-weight: 500; }
+  .pw-feats { list-style: none; margin: 0 0 18px; padding: 0; text-align: left; display: flex; flex-direction: column; gap: 9px; }
+  .pw-feats li { font-size: 13.5px; padding-left: 24px; position: relative; }
+  .pw-feats li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 800; }
+  .pw-cta { display: block; text-decoration: none; text-align: center; background: var(--green); color: #fff; font: 600 14.5px 'Hanken Grotesk', sans-serif; padding: 12px 18px; border-radius: 12px; transition: all .18s ease; }
+  .pw-cta:hover { background: var(--green-deep); transform: translateY(-1px); }
+
+  /* Header controls */
+  .brandwrap { display: flex; align-items: center; gap: 10px; cursor: pointer; border-radius: 10px; padding: 2px 4px; transition: background .15s ease; }
+  .brandwrap:hover { background: rgba(28,27,24,.04); }
+  .iconbtn { border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; cursor: pointer; transition: all .16s ease; flex: none; }
+  .iconbtn:hover { color: var(--green-deep); border-color: var(--green); }
+  .iconbtn svg { width: 18px; height: 18px; }
+  .ghost { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: 600 13.5px 'Hanken Grotesk', sans-serif; padding: 9px 14px; border-radius: 11px; cursor: pointer; transition: all .16s ease; box-shadow: 0 1px 1px rgba(28,27,24,.03); }
+  .ghost:hover { border-color: var(--green); color: var(--green-deep); transform: translateY(-1px); }
+  .ghost svg { width: 16px; height: 16px; }
+
+  /* History drawer */
+  .drawer-overlay { position: fixed; inset: 0; background: rgba(28,27,24,.34); opacity: 0; pointer-events: none; transition: opacity .22s ease; z-index: 40; }
+  .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+  .drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 312px; max-width: 84vw; background: var(--card); border-right: 1px solid var(--line); box-shadow: 0 10px 40px rgba(28,27,24,.18); transform: translateX(-104%); transition: transform .26s cubic-bezier(.2,.7,.2,1); z-index: 50; display: flex; flex-direction: column; padding: 18px 14px; }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 14px; }
+  .drawer-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 19px; }
+  .newbtn { display: flex; align-items: center; gap: 9px; width: 100%; border: 1px dashed var(--line); background: var(--paper); color: var(--green-deep); font: 600 14px 'Hanken Grotesk', sans-serif; padding: 11px 14px; border-radius: 12px; cursor: pointer; margin-bottom: 14px; transition: all .15s ease; }
+  .newbtn:hover { border-color: var(--green); background: var(--green-soft); }
+  .newbtn svg { width: 16px; height: 16px; }
+  .chat-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; }
+  .chat-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 1px solid transparent; background: none; border-radius: 12px; padding: 11px 12px; cursor: pointer; transition: all .14s ease; }
+  .chat-item:hover { background: var(--paper); }
+  .chat-item.active { background: var(--green-soft); border-color: #cfe5d5; }
+  .chat-main { flex: 1; min-width: 0; }
+  .chat-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-item.active .chat-name { color: var(--green-deep); }
+  .chat-meta { font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
+  .chat-del { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; color: var(--ink-soft); opacity: 0; transition: all .14s ease; }
+  .chat-item:hover .chat-del { opacity: .7; }
+  .chat-del:hover { opacity: 1; color: var(--amber); background: rgba(184,101,26,.1); }
+  .chat-del svg { width: 15px; height: 15px; }
   @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes bounce { 0%, 80%, 100% { transform: scale(.5); opacity: .4; } 40% { transform: scale(1); opacity: 1; } }
 </style>
@@ -114,12 +163,33 @@
 const { useState, useRef, useEffect } = React;
 
 const SUGGESTIONS = ["Gaming PC", "Logitech MX Master 3S", "AirPods Pro 2", "Nintendo Switch OLED"];
+const FREE_ASKS = 3;  // keep in sync with FREE_ASKS in api/search.js
 const RANKS = ["1st","2nd","3rd","4th","5th","6th","7th"];
 const SYM = { USD:"$", EUR:"€", GBP:"£", AED:"", INR:"₹", CAD:"$", AUD:"$", JPY:"¥" };
 const sym = c => SYM[(c||"").toUpperCase()] ?? "";
 function emphasize(t) {
   const e = (t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   return e.replace(/([$€£¥₹]\s?\d[\d.,]*)/g, "<b>$1</b>");
+}
+
+// ── Local storage (wrapped so a blocked/unavailable store never breaks the app) ──
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+function blankChat() { return { id: uid(), title: "New search", turns: [], ts: Date.now() }; }
+function loadChats() {
+  const c = LS.get("sift.chats", null);
+  return (Array.isArray(c) && c.length) ? c : [blankChat()];
+}
+function relTime(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60); if (m < 60) return m + "m ago";
+  const h = Math.floor(m / 60); if (h < 24) return h + "h ago";
+  const d = Math.floor(h / 24); if (d < 7) return d + "d ago";
+  return new Date(ts).toLocaleDateString();
 }
 
 async function api(body) {
@@ -129,74 +199,139 @@ async function api(body) {
     body: JSON.stringify(body),
   });
   const d = await r.json();
-  if (!r.ok) throw new Error(d.error || "Request failed");
+  if (!r.ok) {
+    const err = new Error(d.error || "Request failed");
+    if (d.paywall) err.paywall = true;   // 402 — free searches used up
+    if (d.capped) err.capped = true;     // 503 — global daily ceiling hit
+    throw err;
+  }
   return d;
 }
 
 function App() {
-  const [turns, setTurns] = useState([]);
+  const initial = useRef(loadChats()).current;
+  const [chats, setChats] = useState(initial);
+  const [activeId, setActiveId] = useState(initial[0].id);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [gate, setGate] = useState(null);     // null | "paywall" | "capped"
+  const [drawer, setDrawer] = useState(false); // history drawer open?
+  const asksRef = useRef(LS.get("sift.asks", 0)); // price searches used (mirror of server per-IP count)
   const feedRef = useRef(null);
-  useEffect(() => { if (feedRef.current) feedRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [turns, busy]);
+
+  const active = chats.find(c => c.id === activeId) || chats[0];
+  const turns = active ? active.turns : [];
+
+  // Persist chats whenever they change.
+  useEffect(() => { LS.set("sift.chats", chats); }, [chats]);
+  // Auto-scroll to the newest result while searching / when a turn updates.
+  useEffect(() => { if (feedRef.current) feedRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [turns, busy, gate]);
+  // When switching chats, jump back to the top so you can scroll down through it.
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "auto" }); }, [activeId]);
+
+  function outOfFreeAsks() { return asksRef.current >= FREE_ASKS; }
+  function bumpAsks() { asksRef.current += 1; LS.set("sift.asks", asksRef.current); }
+
+  // Update the active chat's turns (and optionally its title).
+  function updateTurns(updater, extra) {
+    setChats(cs => cs.map(c => c.id === activeId ? { ...c, ...(extra || {}), turns: updater(c.turns) } : c));
+  }
 
   async function runSearch(displayItem) {
+    if (outOfFreeAsks()) { setGate("paywall"); return; }
     const idx = turns.length;
-    setTurns(t => [...t, { type: "search", item: displayItem, status: "loading" }]);
+    const extra = idx === 0 ? { title: displayItem, ts: Date.now() } : null;
+    updateTurns(t => [...t, { type: "search", item: displayItem, status: "loading" }], extra);
     setBusy(true);
+    bumpAsks();
     try {
       const data = await api({ mode: "price", item: displayItem });
-      setTurns(t => t.map((x, j) => j === idx ? { ...x, status: "done", data } : x));
+      updateTurns(t => t.map((x, j) => j === idx ? { ...x, status: "done", data } : x));
     } catch (e) {
-      setTurns(t => t.map((x, j) => j === idx ? { ...x, status: "error", error: e.message } : x));
+      if (e.paywall) { setGate("paywall"); updateTurns(t => t.filter((_, j) => j !== idx)); }
+      else if (e.capped) { setGate("capped"); updateTurns(t => t.filter((_, j) => j !== idx)); }
+      else updateTurns(t => t.map((x, j) => j === idx ? { ...x, status: "error", error: e.message } : x));
     } finally { setBusy(false); }
   }
 
   async function submit(raw) {
     const item = (raw || "").trim();
     if (!item || busy) return;
+    if (outOfFreeAsks()) { setGate("paywall"); setInput(""); return; }
     setInput("");
     const idx = turns.length;
-    setTurns(t => [...t, { type: "search", item, status: "thinking" }]);
+    const extra = idx === 0 ? { title: item, ts: Date.now() } : null;
+    updateTurns(t => [...t, { type: "search", item, status: "thinking" }], extra);
     setBusy(true);
     try {
       const c = await api({ mode: "clarify", item });
       if (c && c.clarify && Array.isArray(c.questions) && c.questions.length) {
-        setTurns(t => t.map((x, j) => j === idx ? { type: "clarify", item, intro: c.intro || "A few quick questions to find the right match:", questions: c.questions, answers: {} } : x));
+        updateTurns(t => t.map((x, j) => j === idx ? { type: "clarify", item, intro: c.intro || "A few quick questions to find the right match:", questions: c.questions, answers: {} } : x));
         setBusy(false);
       } else {
-        setTurns(t => t.map((x, j) => j === idx ? { type: "search", item, status: "loading" } : x));
+        updateTurns(t => t.map((x, j) => j === idx ? { type: "search", item, status: "loading" } : x));
+        bumpAsks();
         const data = await api({ mode: "price", item });
-        setTurns(t => t.map((x, j) => j === idx ? { type: "search", item, status: "done", data } : x));
+        updateTurns(t => t.map((x, j) => j === idx ? { type: "search", item, status: "done", data } : x));
         setBusy(false);
       }
     } catch (e) {
-      setTurns(t => t.map((x, j) => j === idx ? { type: "search", item, status: "error", error: e.message } : x));
+      if (e.paywall) { setGate("paywall"); updateTurns(t => t.filter((_, j) => j !== idx)); }
+      else if (e.capped) { setGate("capped"); updateTurns(t => t.filter((_, j) => j !== idx)); }
+      else updateTurns(t => t.map((x, j) => j === idx ? { type: "search", item, status: "error", error: e.message } : x));
       setBusy(false);
     }
   }
 
   function pick(turnIdx, key, option) {
-    setTurns(t => t.map((x, j) => j === turnIdx ? { ...x, answers: { ...x.answers, [key]: option } } : x));
+    updateTurns(t => t.map((x, j) => j === turnIdx ? { ...x, answers: { ...x.answers, [key]: option } } : x));
   }
   function finishClarify(turn) {
     const parts = turn.questions.map(q => turn.answers[q.key]).filter(v => v && !/^no preference$/i.test(v) && !/^any$/i.test(v));
     runSearch(parts.length ? `${turn.item} (${parts.join(", ")})` : turn.item);
   }
 
+  // ── Chat / history management ─────────────────────────────────────────────
+  function goHome() {
+    setDrawer(false);
+    setGate(null);
+    if (active && active.turns.length === 0) return; // already on an empty chat
+    const c = blankChat();
+    setChats(cs => [c, ...cs]);
+    setActiveId(c.id);
+  }
+  function openChat(id) { setDrawer(false); setActiveId(id); }
+  function deleteChat(id, e) {
+    e.stopPropagation();
+    let next = chats.filter(c => c.id !== id);
+    if (next.length === 0) next = [blankChat()];
+    setChats(next);
+    if (id === activeId) setActiveId(next[0].id);
+  }
+
+  const ordered = [...chats].sort((a, b) => b.ts - a.ts);
+
   return (
     <div className="shell">
       <div className="head">
         <div className="mark">
-          <div className="logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6h18l-2 13H5L3 6z" /><path d="M3 6l-1-3" />
-              <circle cx="9" cy="21" r="0.6" fill="#fff" /><circle cx="17" cy="21" r="0.6" fill="#fff" />
-            </svg>
+          <button className="iconbtn" onClick={() => setDrawer(true)} aria-label="History" title="History">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4M12 8v4l3 2"/></svg>
+          </button>
+          <div className="brandwrap" onClick={goHome} title="Home — start a new search">
+            <div className="logo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18l-2 13H5L3 6z" /><path d="M3 6l-1-3" />
+                <circle cx="9" cy="21" r="0.6" fill="#fff" /><circle cx="17" cy="21" r="0.6" fill="#fff" />
+              </svg>
+            </div>
+            <div className="brand">Sift<span className="dot">.</span></div>
           </div>
-          <div className="brand">Sift<span className="dot">.</span></div>
         </div>
-        <div className="tagline">find it for less</div>
+        <button className="ghost" onClick={goHome} title="New search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span>New</span>
+        </button>
       </div>
       <div className="rule" />
 
@@ -248,18 +383,78 @@ function App() {
             )}
           </div>
         ))}
+
+        {gate === "paywall" && (
+          <div className="turn">
+            <div className="card paywall">
+              <div className="pw-badge">Free limit reached</div>
+              <h2 className="pw-title">You've used your {FREE_ASKS} free searches</h2>
+              <p className="pw-sub">Upgrade to <b>Sift&nbsp;Pro</b> for unlimited price hunts, local-currency results, and faster searches.</p>
+              <div className="pw-plan">
+                <div className="pw-plan-head">
+                  <span className="pw-plan-name">Sift Pro</span>
+                  <span className="pw-plan-price"><span className="cur">$</span>5<span className="per">/mo</span></span>
+                </div>
+                <ul className="pw-feats">
+                  <li>Unlimited searches</li>
+                  <li>Local currency &amp; regional retailers</li>
+                  <li>Priority, faster results</li>
+                </ul>
+                <a className="pw-cta" href="./plans.html">See payment options →</a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {gate === "capped" && (
+          <div className="turn">
+            <div className="card"><div className="err">Sift has hit its limit for today — please check back tomorrow. Thanks for your patience.</div></div>
+          </div>
+        )}
+
         <div ref={feedRef} />
       </div>
 
       <div className="composer">
         <div className="bar">
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && submit(input)} placeholder="What are you looking to buy?" disabled={busy} />
-          <button className="send" onClick={() => submit(input)} disabled={busy || !input.trim()} aria-label="Search">
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && submit(input)} placeholder={gate === "paywall" ? "Upgrade to keep searching…" : "What are you looking to buy?"} disabled={busy || gate === "paywall"} />
+          <button className="send" onClick={() => submit(input)} disabled={busy || !input.trim() || gate === "paywall"} aria-label="Search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </button>
         </div>
         <div className="foot">Prices are pulled live and can change — always confirm on the retailer's site before buying.</div>
       </div>
+
+      {/* History drawer */}
+      <div className={"drawer-overlay" + (drawer ? " open" : "")} onClick={() => setDrawer(false)} />
+      <aside className={"drawer" + (drawer ? " open" : "")}>
+        <div className="drawer-head">
+          <span className="drawer-title">Your searches</span>
+          <button className="iconbtn" onClick={() => setDrawer(false)} aria-label="Close" title="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <button className="newbtn" onClick={goHome}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          New search
+        </button>
+        <div className="chat-list">
+          {ordered.map(c => {
+            const last = c.turns.length ? c.turns[c.turns.length - 1].item : null;
+            return (
+              <button key={c.id} className={"chat-item" + (c.id === activeId ? " active" : "")} onClick={() => openChat(c.id)}>
+                <div className="chat-main">
+                  <div className="chat-name">{c.title || "New search"}</div>
+                  <div className="chat-meta">{c.turns.length ? `${c.turns.length} search${c.turns.length > 1 ? "es" : ""} · ` : ""}{relTime(c.ts)}</div>
+                </div>
+                <span className="chat-del" onClick={(e) => deleteChat(c.id, e)} title="Delete" role="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
     </div>
   );
 }
@@ -301,6 +496,6 @@ function Result({ data }) {
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 
-<script src="script.js"></script>
+</script>
 </body>
 </html>
