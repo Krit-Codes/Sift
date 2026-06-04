@@ -5,7 +5,101 @@ const {
   useEffect
 } = React;
 const SUGGESTIONS = ["Gaming PC", "Logitech MX Master 3S", "AirPods Pro 2", "Nintendo Switch OLED"];
-const FREE_ASKS = 3; // keep in sync with FREE_ASKS in api/search.js
+// Canned sample results for the free examples — these never call the API, so they cost nothing.
+const DEMO = {
+  "Gaming PC": {
+    item: "Gaming PC (RTX 4060, 16GB)",
+    found: true,
+    currency: "USD",
+    demo: true,
+    summary: "Sample result — building your own from parts is cheapest here, around $749.",
+    retailers: [{
+      name: "Build your own (parts)",
+      price: "749",
+      note: "Cheapest — you assemble it",
+      cheapest: true
+    }, {
+      name: "CompuZone",
+      price: "899",
+      note: "Prebuilt, in stock"
+    }, {
+      name: "TechBarn",
+      price: "949",
+      note: "Free shipping"
+    }, {
+      name: "MegaStore",
+      price: "979",
+      note: "2–3 day delivery"
+    }],
+    tips: ["Building it yourself usually saves the most.", "Watch for holiday GPU bundle deals."]
+  },
+  "Logitech MX Master 3S": {
+    item: "Logitech MX Master 3S",
+    found: true,
+    currency: "USD",
+    demo: true,
+    summary: "Sample result — Peripheral Plus is cheapest in this example at $89.",
+    retailers: [{
+      name: "Peripheral Plus",
+      price: "89",
+      note: "In stock",
+      cheapest: true
+    }, {
+      name: "OfficeHub",
+      price: "94",
+      note: "Free returns"
+    }, {
+      name: "MegaStore",
+      price: "99",
+      note: "Ships today"
+    }],
+    tips: ["Coupons often knock $10 off mice."]
+  },
+  "AirPods Pro 2": {
+    item: "AirPods Pro 2",
+    found: true,
+    currency: "USD",
+    demo: true,
+    summary: "Sample result — SoundDeal leads this example at $199.",
+    retailers: [{
+      name: "SoundDeal",
+      price: "199",
+      note: "In stock",
+      cheapest: true
+    }, {
+      name: "AudioMart",
+      price: "219",
+      note: "Free shipping"
+    }, {
+      name: "MegaStore",
+      price: "229",
+      note: "Gift wrap"
+    }],
+    tips: ["Refurbished units can save 15–20%."]
+  },
+  "Nintendo Switch OLED": {
+    item: "Nintendo Switch OLED",
+    found: true,
+    currency: "USD",
+    demo: true,
+    summary: "Sample result — GameNest is cheapest here at $319.",
+    retailers: [{
+      name: "GameNest",
+      price: "319",
+      note: "In stock",
+      cheapest: true
+    }, {
+      name: "PlayWorld",
+      price: "334",
+      note: "Bundle available"
+    }, {
+      name: "MegaStore",
+      price: "349",
+      note: "Ships today"
+    }],
+    tips: ["Bundles with a game can be better value."]
+  }
+};
 const RANKS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th"];
 const SYM = {
   USD: "$",
@@ -71,7 +165,13 @@ async function api(body) {
     },
     body: JSON.stringify(body)
   });
-  const d = await r.json();
+  const raw = await r.text();
+  let d;
+  try {
+    d = raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    throw new Error("Backend not reachable \u2014 the /api/search function isn't running here. Deploy it (Vercel) or run `vercel dev`. A plain static file server won't run it.");
+  }
   if (!r.ok) {
     const err = new Error(d.error || "Request failed");
     if (d.paywall) err.paywall = true; // 402 — free searches used up
@@ -86,9 +186,9 @@ function App() {
   const [activeId, setActiveId] = useState(initial[0].id);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [gate, setGate] = useState(null); // null | "paywall" | "capped"
+  const [gate, setGate] = useState(null); // null | "capped"
+  const [view, setView] = useState("app"); // "app" | "plans"
   const [drawer, setDrawer] = useState(false); // history drawer open?
-  const asksRef = useRef(LS.get("sift.asks", 0)); // price searches used (mirror of server per-IP count)
   const feedRef = useRef(null);
   const active = chats.find(c => c.id === activeId) || chats[0];
   const turns = active ? active.turns : [];
@@ -111,12 +211,32 @@ function App() {
       behavior: "auto"
     });
   }, [activeId]);
-  function outOfFreeAsks() {
-    return asksRef.current >= FREE_ASKS;
+
+  // 0 free real searches. Real searches need a paid pass (credits). The free
+  // examples (chips) are canned demos and don't count or call the API.
+  function hasPass() {
+    return LS.get("sift.credits", 0) > 0;
   }
-  function bumpAsks() {
-    asksRef.current += 1;
-    LS.set("sift.asks", asksRef.current);
+  function spendCredit() {
+    LS.set("sift.credits", Math.max(0, LS.get("sift.credits", 0) - 1));
+  }
+
+  // Show a canned sample result for a free example — no API call, no cost.
+  function showDemo(name) {
+    const data = DEMO[name];
+    if (!data || busy) return;
+    setView("app");
+    const idx = turns.length;
+    const extra = idx === 0 ? {
+      title: name,
+      ts: Date.now()
+    } : null;
+    updateTurns(t => [...t, {
+      type: "search",
+      item: name,
+      status: "done",
+      data
+    }], extra);
   }
 
   // Update the active chat's turns (and optionally its title).
@@ -128,10 +248,6 @@ function App() {
     } : c));
   }
   async function runSearch(displayItem) {
-    if (outOfFreeAsks()) {
-      setGate("paywall");
-      return;
-    }
     const idx = turns.length;
     const extra = idx === 0 ? {
       title: displayItem,
@@ -143,22 +259,19 @@ function App() {
       status: "loading"
     }], extra);
     setBusy(true);
-    bumpAsks();
     try {
       const data = await api({
         mode: "price",
         item: displayItem
       });
+      spendCredit();
       updateTurns(t => t.map((x, j) => j === idx ? {
         ...x,
         status: "done",
         data
       } : x));
     } catch (e) {
-      if (e.paywall) {
-        setGate("paywall");
-        updateTurns(t => t.filter((_, j) => j !== idx));
-      } else if (e.capped) {
+      if (e.capped) {
         setGate("capped");
         updateTurns(t => t.filter((_, j) => j !== idx));
       } else updateTurns(t => t.map((x, j) => j === idx ? {
@@ -173,9 +286,18 @@ function App() {
   async function submit(raw) {
     const item = (raw || "").trim();
     if (!item || busy) return;
-    if (outOfFreeAsks()) {
-      setGate("paywall");
+    if (!hasPass()) {
+      // No free searches for your own items — show the notice card.
       setInput("");
+      const idx = turns.length;
+      const extra = idx === 0 ? {
+        title: item,
+        ts: Date.now()
+      } : null;
+      updateTurns(t => [...t, {
+        type: "locked",
+        item
+      }], extra);
       return;
     }
     setInput("");
@@ -210,11 +332,11 @@ function App() {
           item,
           status: "loading"
         } : x));
-        bumpAsks();
         const data = await api({
           mode: "price",
           item
         });
+        spendCredit();
         updateTurns(t => t.map((x, j) => j === idx ? {
           type: "search",
           item,
@@ -224,10 +346,7 @@ function App() {
         setBusy(false);
       }
     } catch (e) {
-      if (e.paywall) {
-        setGate("paywall");
-        updateTurns(t => t.filter((_, j) => j !== idx));
-      } else if (e.capped) {
+      if (e.capped) {
         setGate("capped");
         updateTurns(t => t.filter((_, j) => j !== idx));
       } else updateTurns(t => t.map((x, j) => j === idx ? {
@@ -256,7 +375,7 @@ function App() {
   // ── Chat / history management ─────────────────────────────────────────────
   function goHome() {
     setDrawer(false);
-    setGate(null);
+    setView("app");
     if (active && active.turns.length === 0) return; // already on an empty chat
     const c = blankChat();
     setChats(cs => [c, ...cs]);
@@ -264,6 +383,7 @@ function App() {
   }
   function openChat(id) {
     setDrawer(false);
+    setView("app");
     setActiveId(id);
   }
   function deleteChat(id, e) {
@@ -274,6 +394,9 @@ function App() {
     if (id === activeId) setActiveId(next[0].id);
   }
   const ordered = [...chats].sort((a, b) => b.ts - a.ts);
+  if (view === "plans") return /*#__PURE__*/React.createElement(PlansView, {
+    onBack: () => setView("app")
+  });
   return /*#__PURE__*/React.createElement("div", {
     className: "shell"
   }, /*#__PURE__*/React.createElement("div", {
@@ -344,13 +467,15 @@ function App() {
     className: "rule"
   }), turns.length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "hero"
-  }, /*#__PURE__*/React.createElement("h1", null, "Name a thing. I'll find where it's ", /*#__PURE__*/React.createElement("em", null, "cheapest"), "."), /*#__PURE__*/React.createElement("p", null, "Tell me a product \u2014 a gadget, a model number, anything \u2014 and I'll search live prices across retailers and rank them, lowest first. For big things like a PC, I'll ask a couple of quick questions first. Add your country for local results."), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("h1", null, "Find it for ", /*#__PURE__*/React.createElement("em", null, "less"), "."), /*#__PURE__*/React.createElement("p", null, "Tap a free example below to see how Sift works. To search your own products live across retailers, grab a pass or credits."), /*#__PURE__*/React.createElement("div", {
     className: "chips"
   }, SUGGESTIONS.map(s => /*#__PURE__*/React.createElement("button", {
     key: s,
     className: "chip",
-    onClick: () => submit(s)
-  }, s)))), /*#__PURE__*/React.createElement("div", {
+    onClick: () => showDemo(s)
+  }, s))), /*#__PURE__*/React.createElement("div", {
+    className: "fineprint"
+  }, "Prices are pulled from around the web and may not always be the lowest available \u2014 with enough searching you might find a better deal somewhere else.")), /*#__PURE__*/React.createElement("div", {
     className: "feed"
   }, turns.map((turn, idx) => /*#__PURE__*/React.createElement("div", {
     className: "turn",
@@ -379,7 +504,20 @@ function App() {
     className: "err"
   }, turn.error)), turn.type === "search" && turn.status === "done" && /*#__PURE__*/React.createElement(Result, {
     data: turn.data
-  }), turn.type === "clarify" && /*#__PURE__*/React.createElement("div", {
+  }), turn.type === "locked" && /*#__PURE__*/React.createElement("div", {
+    className: "card locked"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "locked-msg"
+  }, "Searching your own items needs a pass. Try one of the free examples, or buy a pass or credits to unlock your own searches."), /*#__PURE__*/React.createElement("div", {
+    className: "locked-chips"
+  }, SUGGESTIONS.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s,
+    className: "chip",
+    onClick: () => showDemo(s)
+  }, s))), /*#__PURE__*/React.createElement("button", {
+    className: "locked-cta",
+    onClick: () => setView("plans")
+  }, "Buy a pass or credits \u2192")), turn.type === "clarify" && /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "clar"
@@ -406,34 +544,7 @@ function App() {
     className: "skip",
     onClick: () => runSearch(turn.item),
     disabled: busy
-  }, "Skip \u2014 just search \"", turn.item, "\"")))))), gate === "paywall" && /*#__PURE__*/React.createElement("div", {
-    className: "turn"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "card paywall"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "pw-badge"
-  }, "Free limit reached"), /*#__PURE__*/React.createElement("h2", {
-    className: "pw-title"
-  }, "You've used your ", FREE_ASKS, " free searches"), /*#__PURE__*/React.createElement("p", {
-    className: "pw-sub"
-  }, "Upgrade to ", /*#__PURE__*/React.createElement("b", null, "Sift\xA0Pro"), " for unlimited price hunts, local-currency results, and faster searches."), /*#__PURE__*/React.createElement("div", {
-    className: "pw-plan"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "pw-plan-head"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "pw-plan-name"
-  }, "Sift Pro"), /*#__PURE__*/React.createElement("span", {
-    className: "pw-plan-price"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "cur"
-  }, "$"), "5", /*#__PURE__*/React.createElement("span", {
-    className: "per"
-  }, "/mo"))), /*#__PURE__*/React.createElement("ul", {
-    className: "pw-feats"
-  }, /*#__PURE__*/React.createElement("li", null, "Unlimited searches"), /*#__PURE__*/React.createElement("li", null, "Local currency & regional retailers"), /*#__PURE__*/React.createElement("li", null, "Priority, faster results")), /*#__PURE__*/React.createElement("a", {
-    className: "pw-cta",
-    href: "./plans.html"
-  }, "See payment options \u2192")))), gate === "capped" && /*#__PURE__*/React.createElement("div", {
+  }, "Skip \u2014 just search \"", turn.item, "\"")))))), gate === "capped" && /*#__PURE__*/React.createElement("div", {
     className: "turn"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card"
@@ -449,12 +560,12 @@ function App() {
     value: input,
     onChange: e => setInput(e.target.value),
     onKeyDown: e => e.key === "Enter" && submit(input),
-    placeholder: gate === "paywall" ? "Upgrade to keep searching…" : "What are you looking to buy?",
-    disabled: busy || gate === "paywall"
+    placeholder: "What are you looking to buy?",
+    disabled: busy
   }), /*#__PURE__*/React.createElement("button", {
     className: "send",
     onClick: () => submit(input),
-    disabled: busy || !input.trim() || gate === "paywall",
+    disabled: busy || !input.trim(),
     "aria-label": "Search"
   }, /*#__PURE__*/React.createElement("svg", {
     viewBox: "0 0 24 24",
@@ -531,7 +642,22 @@ function App() {
     }, /*#__PURE__*/React.createElement("path", {
       d: "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
     }))));
-  }))));
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "memberbtn",
+    onClick: () => {
+      setDrawer(false);
+      setView("plans");
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.1",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M12 2l2.6 6.3 6.8.5-5.2 4.4 1.6 6.6L12 17l-5.8 3.3 1.6-6.6L2.6 8.8l6.8-.5z"
+  })), "Buy a membership")));
 }
 function Result({
   data
@@ -548,7 +674,9 @@ function Result({
   }
   return /*#__PURE__*/React.createElement("div", {
     className: "card"
-  }, data.summary && /*#__PURE__*/React.createElement("div", {
+  }, data.demo && /*#__PURE__*/React.createElement("div", {
+    className: "demo-badge"
+  }, "Sample example \u2014 buy a pass for real live prices"), data.summary && /*#__PURE__*/React.createElement("div", {
     className: "summary",
     dangerouslySetInnerHTML: {
       __html: emphasize(data.summary)
@@ -605,5 +733,151 @@ function Result({
   }, "Save even more"), /*#__PURE__*/React.createElement("ul", null, data.tips.map((t, i) => /*#__PURE__*/React.createElement("li", {
     key: i
   }, t)))));
+}
+function PlansView({
+  onBack
+}) {
+  const tiers = [{
+    name: "Starter",
+    price: "20",
+    searches: "100",
+    each: "20¢ per search",
+    featured: false,
+    feats: ["100 price searches", "Live prices across retailers", "Local currency & regions", "Search history saved"]
+  }, {
+    name: "Plus",
+    price: "50",
+    searches: "300",
+    each: "~17¢ per search",
+    featured: true,
+    feats: ["300 price searches", "Everything in Starter", "Cheaper per search", "Priority, faster results"]
+  }, {
+    name: "Pro",
+    price: "90",
+    searches: "600",
+    each: "15¢ per search",
+    featured: false,
+    feats: ["600 price searches", "Everything in Plus", "Best price per search", "Priority support"]
+  }];
+  const methods = [["card", "••", "Card"], ["paypal", "P", "PayPal"], ["apple", "\uF8FF", "Apple Pay"], ["google", "G", "Google Pay"], ["crypto", "₿", "Crypto"]];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "shell"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "head"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mark"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "logo"
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#fff",
+    strokeWidth: "2.4",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M3 6h18l-2 13H5L3 6z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3 6l-1-3"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "9",
+    cy: "21",
+    r: "0.6",
+    fill: "#fff"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "17",
+    cy: "21",
+    r: "0.6",
+    fill: "#fff"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "brand"
+  }, "Sift", /*#__PURE__*/React.createElement("span", {
+    className: "dot"
+  }, "."))), /*#__PURE__*/React.createElement("button", {
+    className: "ghost",
+    onClick: onBack
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M19 12H5M11 18l-6-6 6-6"
+  })), /*#__PURE__*/React.createElement("span", null, "Back to search"))), /*#__PURE__*/React.createElement("div", {
+    className: "rule"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "mp-test"
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M12 9v4M12 17h.01"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M10.3 3.3 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.3a2 2 0 0 0-3.4 0z"
+  })), "Test mode \u2014 this is a demo. No real payment is processed and the Pay buttons are disabled."), /*#__PURE__*/React.createElement("div", {
+    className: "mp-hero"
+  }, /*#__PURE__*/React.createElement("h1", null, "Pick a ", /*#__PURE__*/React.createElement("em", null, "membership")), /*#__PURE__*/React.createElement("p", null, "Each membership is a bundle of price searches. Buy more at once and the price per search drops.")), /*#__PURE__*/React.createElement("div", {
+    className: "mp-trial"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mp-trial-info"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mp-trial-tag"
+  }, "Starter pass \xB7 one per customer"), /*#__PURE__*/React.createElement("div", {
+    className: "mp-trial-title"
+  }, "Try 10 searches for $2"), /*#__PURE__*/React.createElement("div", {
+    className: "mp-trial-sub"
+  }, "A cheap way to test real searches. Limited to one purchase per email.")), /*#__PURE__*/React.createElement("button", {
+    className: "mp-trial-buy",
+    onClick: () => {/* test mode — no real payment */}
+  }, "Buy 10 searches \u2014 $2")), /*#__PURE__*/React.createElement("div", {
+    className: "mp-grid"
+  }, tiers.map(t => /*#__PURE__*/React.createElement("div", {
+    className: "mp-plan" + (t.featured ? " featured" : ""),
+    key: t.name
+  }, t.featured && /*#__PURE__*/React.createElement("div", {
+    className: "mp-ribbon"
+  }, "Best value"), /*#__PURE__*/React.createElement("div", {
+    className: "mp-top"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mp-name"
+  }, t.name), /*#__PURE__*/React.createElement("div", {
+    className: "mp-price"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "cur"
+  }, "$"), t.price), /*#__PURE__*/React.createElement("div", {
+    className: "mp-searches"
+  }, /*#__PURE__*/React.createElement("b", null, t.searches), " searches"), /*#__PURE__*/React.createElement("span", {
+    className: "mp-each"
+  }, t.each)), /*#__PURE__*/React.createElement("ul", {
+    className: "mp-feats"
+  }, t.feats.map((f, i) => /*#__PURE__*/React.createElement("li", {
+    key: i
+  }, f))), /*#__PURE__*/React.createElement("div", {
+    className: "mp-paywrap"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "mp-buy",
+    onClick: () => {/* test mode — no real payment */}
+  }, "Buy ", t.name, " \u2014 $", t.price))))), /*#__PURE__*/React.createElement("div", {
+    className: "mp-methods-row"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mp-mh"
+  }, "Accepted payment methods"), /*#__PURE__*/React.createElement("div", {
+    className: "mp-methods"
+  }, methods.map(([c, ic, label]) => /*#__PURE__*/React.createElement("div", {
+    className: "mp-method",
+    key: c
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "mp-ic " + c
+  }, ic), " ", label))), /*#__PURE__*/React.createElement("div", {
+    className: "mp-fine"
+  }, "One-time purchase \u2014 searches don't expire. By buying you agree to the Terms & Privacy Policy.")), /*#__PURE__*/React.createElement("div", {
+    className: "fineprint"
+  }, "Prices are pulled from around the web and may not always be the lowest available \u2014 with enough searching you might find a better deal somewhere else."));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
