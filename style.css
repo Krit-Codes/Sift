@@ -129,6 +129,64 @@
   .newbtn:hover { border-color: var(--green); background: var(--green-soft); }
   .newbtn svg { width: 16px; height: 16px; }
   .chat-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; }
+  .memberbtn { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; border: none; background: var(--green); color: #fff; font: 600 14px 'Hanken Grotesk', sans-serif; padding: 12px 14px; border-radius: 12px; cursor: pointer; margin-top: 14px; text-decoration: none; transition: all .15s ease; box-shadow: 0 4px 14px rgba(20,114,74,.25); }
+  .memberbtn:hover { background: var(--green-deep); transform: translateY(-1px); }
+  .memberbtn svg { width: 16px; height: 16px; }
+  /* In-app membership plans view */
+  .mp-test { display: flex; align-items: center; gap: 9px; background: #f7ecdf; border: 1px solid #ecd9c2; color: var(--amber); font-size: 12.5px; font-weight: 600; padding: 10px 14px; border-radius: 12px; margin-bottom: 22px; }
+  .mp-test svg { width: 15px; height: 15px; flex: none; }
+  .mp-hero { text-align: center; margin-bottom: 26px; }
+  .mp-hero h1 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 30px; letter-spacing: -.025em; margin: 0 0 8px; }
+  .mp-hero h1 em { font-style: italic; color: var(--green); }
+  .mp-hero p { color: var(--ink-soft); font-size: 14px; line-height: 1.55; max-width: 44ch; margin: 0 auto; }
+  .mp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: stretch; }
+  @media (max-width: 720px) { .mp-grid { grid-template-columns: 1fr; max-width: 380px; margin: 0 auto; } }
+  .mp-plan { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; transition: transform .16s ease, box-shadow .16s ease; }
+  .mp-plan:hover { transform: translateY(-3px); box-shadow: 0 2px 4px rgba(28,27,24,.05), 0 16px 40px rgba(28,27,24,.1); }
+  .mp-plan.featured { border-color: var(--green); }
+  .mp-ribbon { position: absolute; top: 16px; right: -36px; transform: rotate(45deg); background: var(--green); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 44px; }
+  .mp-top { padding: 22px 20px 16px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #fffefa, var(--card)); }
+  .mp-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; margin-bottom: 8px; }
+  .mp-price { font-family: 'Fraunces', serif; font-weight: 600; font-size: 38px; color: var(--green-deep); letter-spacing: -.02em; line-height: 1; }
+  .mp-price .cur { font-size: 19px; color: var(--ink-soft); font-weight: 500; vertical-align: super; margin-right: 1px; }
+  .mp-searches { font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
+  .mp-searches b { color: var(--ink); }
+  .mp-each { display: inline-block; margin-top: 9px; font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--green); background: var(--green-soft); padding: 4px 10px; border-radius: 999px; }
+  .mp-feats { list-style: none; margin: 0; padding: 16px 20px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+  .mp-feats li { font-size: 13px; padding-left: 22px; position: relative; }
+  .mp-feats li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 800; }
+  .mp-paywrap { padding: 0 20px 20px; }
+  .mp-buy { width: 100%; border: none; background: var(--green); color: #fff; font: 600 14.5px 'Hanken Grotesk', sans-serif; padding: 12px; border-radius: 12px; cursor: pointer; transition: all .18s ease; }
+  .mp-buy:hover { background: var(--green-deep); transform: translateY(-1px); }
+  .mp-plan:not(.featured) .mp-buy { background: var(--card); color: var(--green-deep); border: 1px solid var(--green); }
+  .mp-plan:not(.featured) .mp-buy:hover { background: var(--green-soft); }
+  .mp-methods-row { margin-top: 26px; text-align: center; }
+  .mp-mh { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 12px; }
+  .mp-methods { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .mp-method { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 9px 13px; font-size: 13px; font-weight: 600; }
+  .mp-ic { width: 22px; height: 16px; border-radius: 3px; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; }
+  .mp-ic.card { background: linear-gradient(135deg, #4b5d8a, #2c3656); }
+  .mp-ic.paypal { background: #fff; color: #1b3a73; border: 1px solid var(--line); font-style: italic; }
+  .mp-ic.apple { background: #111; }
+  .mp-ic.google { background: #fff; color: #4285f4; border: 1px solid var(--line); }
+  .mp-ic.crypto { background: linear-gradient(135deg, #d9912b, #b8651a); }
+  .mp-fine { text-align: center; font-size: 11.5px; color: var(--ink-soft); margin-top: 16px; line-height: 1.5; }
+  /* Locked (no-pass) notice + demo badge */
+  .locked { text-align: center; }
+  .locked-msg { font-size: 14.5px; color: var(--ink); line-height: 1.55; max-width: 46ch; margin: 4px auto 16px; }
+  .locked-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 18px; }
+  .locked-cta { border: none; background: var(--green); color: #fff; font: 600 14px 'Hanken Grotesk', sans-serif; padding: 11px 18px; border-radius: 12px; cursor: pointer; transition: all .18s ease; }
+  .locked-cta:hover { background: var(--green-deep); transform: translateY(-1px); }
+  .demo-badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--amber); background: #f7ecdf; border: 1px solid #ecd9c2; padding: 5px 11px; border-radius: 999px; margin-bottom: 12px; }
+  /* $2 trial pass banner */
+  .mp-trial { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: linear-gradient(180deg, #fffefa, var(--card)); border: 1px dashed var(--green); border-radius: 16px; padding: 16px 20px; margin-bottom: 18px; }
+  .mp-trial-tag { font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--green); margin-bottom: 5px; }
+  .mp-trial-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; }
+  .mp-trial-sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+  .mp-trial-buy { border: none; background: var(--green); color: #fff; font: 600 14px 'Hanken Grotesk', sans-serif; padding: 11px 18px; border-radius: 12px; cursor: pointer; white-space: nowrap; transition: all .18s ease; }
+  .mp-trial-buy:hover { background: var(--green-deep); transform: translateY(-1px); }
+  /* subtle bottom disclaimer */
+  .fineprint { max-width: 60ch; margin: 56px auto 8px; text-align: center; font-size: 10px; line-height: 1.5; color: #b3ad9f; }
   .chat-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 1px solid transparent; background: none; border-radius: 12px; padding: 11px 12px; cursor: pointer; transition: all .14s ease; }
   .chat-item:hover { background: var(--paper); }
   .chat-item.active { background: var(--green-soft); border-color: #cfe5d5; }
