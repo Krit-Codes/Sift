@@ -136,6 +136,9 @@ const LS = {
   }
 };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+// Credits live in memory (works even when browser storage is blocked, e.g. previews),
+// and are mirrored to localStorage so they survive a reload when storage is available.
+let CREDITS = LS.get("sift.credits", 0);
 function blankChat() {
   return {
     id: uid(),
@@ -191,6 +194,7 @@ function App() {
   const [gate, setGate] = useState(null); // null | "capped"
   const [view, setView] = useState("app"); // "app" | "plans"
   const [drawer, setDrawer] = useState(false); // history drawer open?
+  const [credits, setCredits] = useState(CREDITS); // reactive copy for display
   const feedRef = useRef(null);
   const active = chats.find(c => c.id === activeId) || chats[0];
   const turns = active ? active.turns : [];
@@ -216,14 +220,17 @@ function App() {
 
   // 0 free real searches. Real searches need a paid pass (credits). The free
   // examples (chips) are canned demos and don't count or call the API.
+  function syncCredits() { LS.set("sift.credits", CREDITS); setCredits(CREDITS); }
   function hasPass() {
-    return LS.get("sift.credits", 0) > 0;
+    return CREDITS > 0;
   }
   function spendCredit() {
-    LS.set("sift.credits", Math.max(0, LS.get("sift.credits", 0) - 1));
+    CREDITS = Math.max(0, CREDITS - 1);
+    syncCredits();
   }
   function grantCredits(n) {
-    LS.set("sift.credits", LS.get("sift.credits", 0) + n);
+    CREDITS = CREDITS + n;
+    syncCredits();
     setView("app");
   }
 
@@ -496,7 +503,12 @@ function App() {
     className: "brand"
   }, "Sift", /*#__PURE__*/React.createElement("span", {
     className: "dot"
-  }, ".")))), /*#__PURE__*/React.createElement("button", {
+  }, ".")))), /*#__PURE__*/React.createElement("div", {
+    className: "head-actions"
+  }, credits > 0 && /*#__PURE__*/React.createElement("span", {
+    className: "credits-pill",
+    title: "Searches left"
+  }, credits, " left"), /*#__PURE__*/React.createElement("button", {
     className: "ghost",
     onClick: goHome,
     title: "New search"
@@ -509,7 +521,7 @@ function App() {
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("path", {
     d: "M12 5v14M5 12h14"
-  })), /*#__PURE__*/React.createElement("span", null, "New"))), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("span", null, "New")))), /*#__PURE__*/React.createElement("div", {
     className: "rule"
   }), turns.length === 0 && /*#__PURE__*/React.createElement("div", {
     className: "hero"
