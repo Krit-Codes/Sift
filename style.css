@@ -202,3 +202,15 @@
   @keyframes bounce { 0%, 80%, 100% { transform: scale(.5); opacity: .4; } 40% { transform: scale(1); opacity: 1; } }
   .head-actions { display: flex; align-items: center; gap: 10px; }
   .credits-pill { font-size: 12px; font-weight: 700; color: var(--green-deep); background: var(--green-soft); border: 1px solid #cfe5d5; padding: 6px 11px; border-radius: 999px; white-space: nowrap; }
+  /* Visit link on each result row */
+  .row .visit { display: inline-flex; align-items: center; gap: 4px; flex: none; margin-left: 10px; font: 600 12.5px 'Hanken Grotesk', sans-serif; color: var(--green); text-decoration: none; padding: 6px 10px; border: 1px solid var(--line); border-radius: 9px; transition: all .15s ease; }
+  .row .visit:hover { background: var(--green-soft); border-color: var(--green); }
+  .row .visit svg { width: 13px; height: 13px; }
+  /* Purchase-success popup */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(28,27,24,.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 24px; animation: fade .18s ease; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  .modal { background: var(--card); border-radius: 20px; box-shadow: 0 20px 60px rgba(28,27,24,.3); padding: 32px 28px; max-width: 360px; width: 100%; text-align: center; animation: rise .28s cubic-bezier(.2,.7,.2,1); }
+  .modal-check { width: 56px; height: 56px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 28px; font-weight: 800; display: grid; place-items: center; margin: 0 auto 16px; }
+  .modal-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 23px; margin-bottom: 20px; }
+  .modal-btn { width: 100%; border: none; background: var(--green); color: #fff; font: 600 15px 'Hanken Grotesk', sans-serif; padding: 13px; border-radius: 12px; cursor: pointer; transition: all .18s ease; }
+  .modal-btn:hover { background: var(--green-deep); transform: translateY(-1px); }
