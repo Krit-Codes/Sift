@@ -195,6 +195,7 @@ function App() {
   const [view, setView] = useState("app"); // "app" | "plans"
   const [drawer, setDrawer] = useState(false); // history drawer open?
   const [credits, setCredits] = useState(CREDITS); // reactive copy for display
+  const [purchased, setPurchased] = useState(false); // show purchase-success popup
   const feedRef = useRef(null);
   const active = chats.find(c => c.id === activeId) || chats[0];
   const turns = active ? active.turns : [];
@@ -232,6 +233,7 @@ function App() {
     CREDITS = CREDITS + n;
     syncCredits();
     setView("app");
+    setPurchased(true);
   }
 
   // Show a canned sample result for a free example — no API call, no cost.
@@ -715,7 +717,20 @@ function App() {
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("path", {
     d: "M12 2l2.6 6.3 6.8.5-5.2 4.4 1.6 6.6L12 17l-5.8 3.3 1.6-6.6L2.6 8.8l6.8-.5z"
-  })), "Buy a membership")));
+  })), "Buy a membership")), purchased && /*#__PURE__*/React.createElement("div", {
+    className: "modal-overlay",
+    onClick: () => setPurchased(false)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal",
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-check"
+  }, "\u2713"), /*#__PURE__*/React.createElement("div", {
+    className: "modal-title"
+  }, "Purchase successful"), /*#__PURE__*/React.createElement("button", {
+    className: "modal-btn",
+    onClick: () => setPurchased(false)
+  }, "Click here to use your credits"))));
 }
 function Result({
   data
@@ -743,19 +758,14 @@ function Result({
     className: "rows"
   }, retailers.map((r, i) => {
     const best = !!r.cheapest || i === 0 && !retailers.some(x => x.cheapest);
-    const Tag = r.url ? "a" : "div";
-    const props = r.url ? {
-      href: r.url,
-      target: "_blank",
-      rel: "noopener noreferrer"
-    } : {};
-    return /*#__PURE__*/React.createElement(Tag, _extends({
+    const link = r.url || ("https://www.google.com/search?q=" + encodeURIComponent(data.item + " " + r.name));
+    return /*#__PURE__*/React.createElement("div", {
       className: "row" + (best ? " best" : ""),
       key: i,
       style: {
         animationDelay: i * 60 + "ms"
       }
-    }, props), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       className: "rank"
     }, RANKS[i] || i + 1 + "th"), /*#__PURE__*/React.createElement("div", {
       className: "info"
@@ -773,8 +783,12 @@ function Result({
       className: "cur"
     }, s) : /*#__PURE__*/React.createElement("span", {
       className: "cur"
-    }, cur, " "), r.price), /*#__PURE__*/React.createElement("svg", {
-      className: "go",
+    }, cur, " "), r.price), /*#__PURE__*/React.createElement("a", {
+      className: "visit",
+      href: link,
+      target: "_blank",
+      rel: "noopener noreferrer"
+    }, "Visit", /*#__PURE__*/React.createElement("svg", {
       viewBox: "0 0 24 24",
       fill: "none",
       stroke: "currentColor",
@@ -783,7 +797,7 @@ function Result({
       strokeLinejoin: "round"
     }, /*#__PURE__*/React.createElement("path", {
       d: "M7 17L17 7M9 7h8v8"
-    })));
+    }))));
   })), Array.isArray(data.tips) && data.tips.length > 0 && /*#__PURE__*/React.createElement("div", {
     className: "tips"
   }, /*#__PURE__*/React.createElement("div", {
