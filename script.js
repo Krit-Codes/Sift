@@ -5,6 +5,8 @@ const {
   useEffect
 } = React;
 const SUGGESTIONS = ["Gaming PC", "Logitech MX Master 3S", "AirPods Pro 2", "Nintendo Switch OLED"];
+// ⚠️ TEST BYPASS — REMOVE BEFORE LAUNCH. Typing this after a product runs a free real search.
+const TEST_CODE = "Krit10092321232";
 // Canned sample results for the free examples — these never call the API, so they cost nothing.
 const DEMO = {
   "Gaming PC": {
@@ -220,6 +222,10 @@ function App() {
   function spendCredit() {
     LS.set("sift.credits", Math.max(0, LS.get("sift.credits", 0) - 1));
   }
+  function grantCredits(n) {
+    LS.set("sift.credits", LS.get("sift.credits", 0) + n);
+    setView("app");
+  }
 
   // Show a canned sample result for a free example — no API call, no cost.
   function showDemo(name) {
@@ -284,8 +290,47 @@ function App() {
     }
   }
   async function submit(raw) {
-    const item = (raw || "").trim();
-    if (!item || busy) return;
+    const rawTrim = (raw || "").trim();
+    if (!rawTrim || busy) return;
+    // ⚠️ TEST BYPASS — REMOVE BEFORE LAUNCH
+    const isTest = rawTrim.includes(TEST_CODE);
+    const item = isTest ? rawTrim.replace(TEST_CODE, "").trim() : rawTrim;
+    if (isTest) {
+      if (!item) return; // only the code was typed
+      setInput("");
+      const idx = turns.length;
+      const extra = idx === 0 ? {
+        title: item,
+        ts: Date.now()
+      } : null;
+      updateTurns(t => [...t, {
+        type: "search",
+        item,
+        status: "loading"
+      }], extra);
+      setBusy(true);
+      try {
+        const data = await api({
+          mode: "price",
+          item,
+          code: TEST_CODE
+        });
+        updateTurns(t => t.map((x, j) => j === idx ? {
+          ...x,
+          status: "done",
+          data
+        } : x));
+      } catch (e) {
+        updateTurns(t => t.map((x, j) => j === idx ? {
+          ...x,
+          status: "error",
+          error: e.message
+        } : x));
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (!hasPass()) {
       // No free searches for your own items — show the notice card.
       setInput("");
@@ -395,7 +440,8 @@ function App() {
   }
   const ordered = [...chats].sort((a, b) => b.ts - a.ts);
   if (view === "plans") return /*#__PURE__*/React.createElement(PlansView, {
-    onBack: () => setView("app")
+    onBack: () => setView("app"),
+    onBuy: grantCredits
   });
   return /*#__PURE__*/React.createElement("div", {
     className: "shell"
@@ -735,7 +781,8 @@ function Result({
   }, t)))));
 }
 function PlansView({
-  onBack
+  onBack,
+  onBuy
 }) {
   const tiers = [{
     name: "Starter",
@@ -759,7 +806,7 @@ function PlansView({
     featured: false,
     feats: ["600 price searches", "Everything in Plus", "Best price per search", "Priority support"]
   }];
-  const methods = [["card", "••", "Card"], ["paypal", "P", "PayPal"], ["apple", "\uF8FF", "Apple Pay"], ["google", "G", "Google Pay"], ["crypto", "₿", "Crypto"]];
+  const methods = [["card", "••", "Card"]];
   return /*#__PURE__*/React.createElement("div", {
     className: "shell"
   }, /*#__PURE__*/React.createElement("div", {
@@ -834,7 +881,7 @@ function PlansView({
     className: "mp-trial-sub"
   }, "A cheap way to test real searches. Limited to one purchase per email.")), /*#__PURE__*/React.createElement("button", {
     className: "mp-trial-buy",
-    onClick: () => {/* test mode — no real payment */}
+    onClick: () => onBuy(10)
   }, "Buy 10 searches \u2014 $2")), /*#__PURE__*/React.createElement("div", {
     className: "mp-grid"
   }, tiers.map(t => /*#__PURE__*/React.createElement("div", {
@@ -862,7 +909,7 @@ function PlansView({
     className: "mp-paywrap"
   }, /*#__PURE__*/React.createElement("button", {
     className: "mp-buy",
-    onClick: () => {/* test mode — no real payment */}
+    onClick: () => onBuy(parseInt(t.searches, 10))
   }, "Buy ", t.name, " \u2014 $", t.price))))), /*#__PURE__*/React.createElement("div", {
     className: "mp-methods-row"
   }, /*#__PURE__*/React.createElement("div", {
