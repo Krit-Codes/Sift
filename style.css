@@ -219,3 +219,12 @@
   .country-select:hover { border-color: var(--green); }
   .country-select:focus { outline: none; border-color: var(--green); }
   @media (max-width: 560px) { .country-select { max-width: 116px; } }
+  /* Live "searching the internet" screen */
+  .searching { padding: 4px 2px; }
+  .searching-top { display: flex; align-items: center; gap: 11px; }
+  .searching-msg { font-weight: 600; font-size: 15px; color: var(--ink); }
+  .searching-bar { height: 6px; background: var(--green-soft); border-radius: 999px; margin: 14px 0 9px; overflow: hidden; }
+  .searching-fill { height: 100%; background: var(--green); border-radius: 999px; transition: width 1s linear; }
+  .searching-meta { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); }
+  .searching-elapsed { font-variant-numeric: tabular-nums; }
+  .searching-note { margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
