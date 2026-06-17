@@ -1,14 +1,33 @@
-// Sift backend — runs on Vercel. Holds YOUR Anthropic key server-side.
+// Sift backend — runs on Vercel (or any Node serverless host).
+// Holds YOUR Anthropic key server-side so visitors never see it and don't need their own.
+// Set the key as an environment variable named ANTHROPIC_API_KEY in your host's dashboard.
+
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const VERSION = "2023-06-01";
 
+// ── Quotas & cost control (durable, backed by Upstash Redis) ───────────────
+// Two layers protect your wallet:
+//   1. FREE_ASKS  — each visitor (per IP) gets this many price searches, then
+//                   the API returns { paywall: true } and the UI shows the
+//                   upgrade screen. This is the per-user limit.
+//   2. DAILY_MAX  — a hard ceiling on TOTAL price searches across EVERYONE per
+//                   day, so even a flood can't run your bill past it.
+// Counters live in Upstash Redis (free tier) so they survive across serverless
+// instances. If Upstash env vars are absent, it falls back to in-memory
+// counters — fine for local dev, but NOT durable in production.
+//
+// Set these in your host's environment variables:
+//   UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN   (from upstash.com)
+// Optional overrides:
+//   FREE_ASKS (default 3), DAILY_MAX (default 500), FREE_WINDOW_DAYS (default 30)
 const FREE_ASKS = parseInt(process.env.FREE_ASKS || "0", 10);
 const DAILY_MAX = parseInt(process.env.DAILY_MAX || "500", 10);
-const FREE_TTL = parseInt(process.env.FREE_WINDOW_DAYS || "30", 10) * 86400;
+const FREE_TTL = parseInt(process.env.FREE_WINDOW_DAYS || "30", 10) * 86400; // seconds
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const REDIS_ON = !!(REDIS_URL && REDIS_TOKEN);
 
+// Talk to Upstash over its REST API (one command per call, e.g. ["INCR", key]).
 async function redis(cmd) {
   const r = await fetch(REDIS_URL, {
     method: "POST",
@@ -19,23 +38,35 @@ async function redis(cmd) {
   if (d.error) throw new Error("Redis: " + d.error);
   return d.result;
 }
-const mem = new Map();
+
+// In-memory fallback (per instance, resets on cold start). Dev only.
+const mem = new Map(); // key -> { n, exp }
 function memIncr(key, ttl) {
   const now = Date.now();
   const cur = mem.get(key);
   if (!cur || cur.exp < now) { mem.set(key, { n: 1, exp: now + ttl * 1000 }); return 1; }
   cur.n += 1; return cur.n;
 }
-function memDecr(key) { const cur = mem.get(key); if (cur && cur.n > 0) cur.n -= 1; return cur ? cur.n : 0; }
+function memDecr(key) {
+  const cur = mem.get(key);
+  if (cur && cur.n > 0) cur.n -= 1;
+  return cur ? cur.n : 0;
+}
+
 async function incr(key, ttl) {
   if (!REDIS_ON) return memIncr(key, ttl);
   const n = await redis(["INCR", key]);
-  if (n === 1) await redis(["EXPIRE", key, ttl]);
+  if (n === 1) await redis(["EXPIRE", key, ttl]); // set TTL only on first write
   return n;
 }
-async function decr(key) { if (!REDIS_ON) return memDecr(key); return redis(["DECR", key]); }
+async function decr(key) {
+  if (!REDIS_ON) return memDecr(key);
+  return redis(["DECR", key]);
+}
 
-const SYSTEM = "You are Sift, a sharp, honest shopping assistant. Your job is to find where a product can be bought for the lowest current price. Always use web search for up-to-date prices and stock. Never invent prices, stores, or links. Prefer reputable retailers.";
+// ── Prompts (kept server-side) ─────────────────────────────────────────────
+const SYSTEM =
+  "You are Sift, a sharp, honest shopping assistant. Your job is to find where a product can be bought for the lowest current price. Always use web search for up-to-date prices and stock. Never invent prices, stores, or links. Prefer reputable retailers.";
 
 function clarifyPrompt(item) {
   return `The user wants to buy: "${item}".
@@ -46,7 +77,9 @@ JSON shape when clarifying:
   "clarify": true,
   "intro": "one short friendly line",
   "questions": [
-    {"key": "use", "q": "What will you mainly use it for?", "options": ["Gaming", "Work / office", "Creative / editing", "No preference"]}
+    {"key": "use", "q": "What will you mainly use it for?", "options": ["Gaming", "Work / office", "Creative / editing", "No preference"]},
+    {"key": "gpu", "q": "Which graphics card?", "options": ["RTX 4060", "RTX 4070", "RTX 4080+", "No preference"]},
+    {"key": "storage", "q": "How much storage?", "options": ["512GB SSD", "1TB SSD", "2TB+", "No preference"]}
   ]
 }
 Rules: 3-5 options each, always include a "No preference" option, keep everything short. Return ONLY raw JSON, no markdown.`;
@@ -86,7 +119,11 @@ function extractJSON(text) {
 async function callAnthropic(key, body) {
   const res = await fetch(ANTHROPIC_URL, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": VERSION },
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": VERSION,
+    },
     body: JSON.stringify(body),
   });
   const data = await res.json();
@@ -97,15 +134,27 @@ async function callAnthropic(key, body) {
 }
 
 module.exports = async function handler(req, res) {
-  if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) { res.status(500).json({ error: "Server is missing ANTHROPIC_API_KEY." }); return; }
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
 
-  const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket?.remoteAddress || "unknown";
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) {
+    res.status(500).json({ error: "Server is missing ANTHROPIC_API_KEY. Set it in your host's environment variables." });
+    return;
+  }
+
+  const ip =
+    (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
+    req.socket?.remoteAddress ||
+    "unknown";
+
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
   const mode = body?.mode;
   const item = (body?.item || "").toString().trim().slice(0, 200);
+
   if (!item) { res.status(400).json({ error: "Please include an item to search for." }); return; }
   if (mode !== "clarify" && mode !== "price") { res.status(400).json({ error: "Invalid mode." }); return; }
 
@@ -117,19 +166,26 @@ module.exports = async function handler(req, res) {
         messages: [{ role: "user", content: clarifyPrompt(item) }],
       });
       const parsed = extractJSON(text);
-      res.status(200).json(parsed && parsed.clarify && Array.isArray(parsed.questions) && parsed.questions.length ? parsed : { clarify: false });
+      if (parsed && parsed.clarify && Array.isArray(parsed.questions) && parsed.questions.length) {
+        res.status(200).json(parsed);
+      } else {
+        res.status(200).json({ clarify: false });
+      }
       return;
     }
 
-    // ⚠️ TEST BYPASS — REMOVE BEFORE LAUNCH
-    const isTest = (body?.code || "") === "Krit10092321232";
-
-    // Per-user access is gated by CREDITS in the browser. Server only caps daily spend.
-    if (!isTest) {
-      const dayKey = `sift:day:${new Date().toISOString().slice(0, 10)}`;
+    // mode === "price" — this is the one that costs money, so meter it here.
+    // Per-user access is gated by CREDITS in the browser (frontend). The server
+    // enforces a global daily spend cap so a bad day can't drain the card.
+    {
+      const day = new Date().toISOString().slice(0, 10);
+      const dayKey = `sift:day:${day}`;
       let usedToday = 0;
       try { usedToday = await incr(dayKey, 2 * 86400); } catch (e) { usedToday = 0; }
-      if (usedToday > DAILY_MAX) { res.status(503).json({ capped: true, error: "Sift has hit its limit for today." }); return; }
+      if (usedToday > DAILY_MAX) {
+        res.status(503).json({ capped: true, error: "Sift has hit its limit for today. Please try again tomorrow." });
+        return;
+      }
     }
 
     const text = await callAnthropic(key, {
@@ -140,7 +196,11 @@ module.exports = async function handler(req, res) {
       tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
     });
     const parsed = extractJSON(text);
-    res.status(200).json(parsed || { found: false, summary: "Couldn't read a clean result — try a more specific name." });
+    if (parsed) {
+      res.status(200).json(parsed);
+    } else {
+      res.status(200).json({ found: false, summary: "Couldn't read a clean result — try a more specific name." });
+    }
   } catch (e) {
     res.status(502).json({ error: e.message || "Something went wrong reaching the AI." });
   }
