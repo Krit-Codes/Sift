@@ -139,6 +139,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 // Credits live in memory (works even when browser storage is blocked, e.g. previews),
 // and are mirrored to localStorage so they survive a reload when storage is available.
 let CREDITS = LS.get("sift.credits", 0);
+const COUNTRIES = ["United States", "United Arab Emirates", "United Kingdom", "Canada", "Australia", "Ireland", "New Zealand", "India", "Pakistan", "Bangladesh", "Sri Lanka", "Nepal", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman", "Jordan", "Lebanon", "Egypt", "Morocco", "Turkey", "Israel", "Germany", "France", "Italy", "Spain", "Portugal", "Netherlands", "Belgium", "Switzerland", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Iceland", "Poland", "Czech Republic", "Hungary", "Romania", "Greece", "Russia", "Ukraine", "Japan", "China", "South Korea", "Taiwan", "Hong Kong", "Singapore", "Malaysia", "Indonesia", "Thailand", "Philippines", "Vietnam", "Brazil", "Mexico", "Argentina", "Chile", "Colombia", "Peru", "South Africa", "Nigeria", "Kenya", "Ghana"];
 function blankChat() {
   return {
     id: uid(),
@@ -196,6 +197,11 @@ function App() {
   const [drawer, setDrawer] = useState(false); // history drawer open?
   const [credits, setCredits] = useState(CREDITS); // reactive copy for display
   const [purchased, setPurchased] = useState(false); // show purchase-success popup
+  const [country, setCountry] = useState(() => LS.get("sift.country", "United States"));
+  function pickCountry(c) { setCountry(c); LS.set("sift.country", c); }
+  // Tell the AI which country's stores/currency to use, without cluttering the
+  // displayed product title. Used only for real price searches.
+  const withCountry = it => it + " \u2014 find current prices from retailers in " + country + ", shown in " + country + "'s local currency";
   const feedRef = useRef(null);
   const active = chats.find(c => c.id === activeId) || chats[0];
   const turns = active ? active.turns : [];
@@ -277,7 +283,7 @@ function App() {
     try {
       const data = await api({
         mode: "price",
-        item: displayItem
+        item: withCountry(displayItem)
       });
       spendCredit();
       updateTurns(t => t.map((x, j) => j === idx ? {
@@ -321,7 +327,7 @@ function App() {
       try {
         const data = await api({
           mode: "price",
-          item,
+          item: withCountry(item),
           code: TEST_CODE
         });
         updateTurns(t => t.map((x, j) => j === idx ? {
@@ -388,7 +394,7 @@ function App() {
         } : x));
         const data = await api({
           mode: "price",
-          item
+          item: withCountry(item)
         });
         spendCredit();
         updateTurns(t => t.map((x, j) => j === idx ? {
@@ -507,7 +513,15 @@ function App() {
     className: "dot"
   }, ".")))), /*#__PURE__*/React.createElement("div", {
     className: "head-actions"
-  }, credits > 0 && /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("select", {
+    className: "country-select",
+    value: country,
+    onChange: e => pickCountry(e.target.value),
+    title: "Find prices for this country"
+  }, COUNTRIES.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c,
+    value: c
+  }, c))), credits > 0 && /*#__PURE__*/React.createElement("span", {
     className: "credits-pill",
     title: "Searches left"
   }, credits, " left"), /*#__PURE__*/React.createElement("button", {
