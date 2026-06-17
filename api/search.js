@@ -123,15 +123,13 @@ module.exports = async function handler(req, res) {
 
     // ⚠️ TEST BYPASS — REMOVE BEFORE LAUNCH
     const isTest = (body?.code || "") === "Krit10092321232";
+
+    // Per-user access is gated by CREDITS in the browser. Server only caps daily spend.
     if (!isTest) {
-      const askKey = `sift:asks:${ip}`;
-      let asks;
-      try { asks = await incr(askKey, FREE_TTL); } catch (e) { asks = 1; }
-      if (asks > FREE_ASKS) { res.status(402).json({ paywall: true, error: `You've used your ${FREE_ASKS} free searches.` }); return; }
       const dayKey = `sift:day:${new Date().toISOString().slice(0, 10)}`;
       let usedToday = 0;
       try { usedToday = await incr(dayKey, 2 * 86400); } catch (e) { usedToday = 0; }
-      if (usedToday > DAILY_MAX) { try { await decr(askKey); } catch (e) {} res.status(503).json({ capped: true, error: "Sift has hit its limit for today." }); return; }
+      if (usedToday > DAILY_MAX) { res.status(503).json({ capped: true, error: "Sift has hit its limit for today." }); return; }
     }
 
     const text = await callAnthropic(key, {
