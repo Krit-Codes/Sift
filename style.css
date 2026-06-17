@@ -214,3 +214,8 @@
   .modal-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 23px; margin-bottom: 20px; }
   .modal-btn { width: 100%; border: none; background: var(--green); color: #fff; font: 600 15px 'Hanken Grotesk', sans-serif; padding: 13px; border-radius: 12px; cursor: pointer; transition: all .18s ease; }
   .modal-btn:hover { background: var(--green-deep); transform: translateY(-1px); }
+  /* Country selector in the header */
+  .country-select { font: 600 12.5px 'Hanken Grotesk', sans-serif; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 7px 30px 7px 13px; cursor: pointer; max-width: 150px; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23147a4a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>"); background-repeat: no-repeat; background-position: right 11px center; transition: border-color .15s ease; }
+  .country-select:hover { border-color: var(--green); }
+  .country-select:focus { outline: none; border-color: var(--green); }
+  @media (max-width: 560px) { .country-select { max-width: 116px; } }
