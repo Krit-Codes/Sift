@@ -5,8 +5,6 @@ const {
   useEffect
 } = React;
 const SUGGESTIONS = ["Gaming PC", "Logitech MX Master 3S", "AirPods Pro 2", "Nintendo Switch OLED"];
-// ⚠️ TEST BYPASS — REMOVE BEFORE LAUNCH. Typing this after a product runs a free real search.
-const TEST_CODE = "Krit10092321232";
 // Canned sample results for the free examples — these never call the API, so they cost nothing.
 const DEMO = {
   "Gaming PC": {
@@ -307,45 +305,7 @@ function App() {
   async function submit(raw) {
     const rawTrim = (raw || "").trim();
     if (!rawTrim || busy) return;
-    // ⚠️ TEST BYPASS — REMOVE BEFORE LAUNCH
-    const isTest = rawTrim.includes(TEST_CODE);
-    const item = isTest ? rawTrim.replace(TEST_CODE, "").trim() : rawTrim;
-    if (isTest) {
-      if (!item) return; // only the code was typed
-      setInput("");
-      const idx = turns.length;
-      const extra = idx === 0 ? {
-        title: item,
-        ts: Date.now()
-      } : null;
-      updateTurns(t => [...t, {
-        type: "search",
-        item,
-        status: "loading"
-      }], extra);
-      setBusy(true);
-      try {
-        const data = await api({
-          mode: "price",
-          item: withCountry(item),
-          code: TEST_CODE
-        });
-        updateTurns(t => t.map((x, j) => j === idx ? {
-          ...x,
-          status: "done",
-          data
-        } : x));
-      } catch (e) {
-        updateTurns(t => t.map((x, j) => j === idx ? {
-          ...x,
-          status: "error",
-          error: e.message
-        } : x));
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
+    const item = rawTrim;
     if (!hasPass()) {
       // No free searches for your own items — show the notice card.
       setInput("");
