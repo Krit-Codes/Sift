@@ -566,13 +566,7 @@ function App() {
     className: "loading"
   }, /*#__PURE__*/React.createElement("span", {
     className: "dots"
-  }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null)), "Understanding your request\u2026")), turn.type === "search" && turn.status === "loading" && /*#__PURE__*/React.createElement("div", {
-    className: "card"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "loading"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "dots"
-  }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null)), "Searching retailers for live prices\u2026")), turn.type === "search" && turn.status === "error" && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null)), "Understanding your request\u2026")), turn.type === "search" && turn.status === "loading" && /*#__PURE__*/React.createElement(Searching, null), turn.type === "search" && turn.status === "error" && /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "err"
@@ -746,6 +740,41 @@ function App() {
     onClick: () => setPurchased(false)
   }, "Click here to use your credits"))));
 }
+function Searching() {
+  const phases = ["Searching the entire internet\u2026", "Checking major retailers\u2026", "Reading product pages\u2026", "Comparing live prices\u2026", "Ranking the cheapest options\u2026", "Almost there\u2026"];
+  const est = 25;
+  const [sec, setSec] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setSec(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const phase = phases[Math.min(Math.floor(sec / 4), phases.length - 1)];
+  const remain = Math.max(0, est - sec);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "searching"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "searching-top"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "dots"
+  }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null)), /*#__PURE__*/React.createElement("span", {
+    className: "searching-msg"
+  }, phase)), /*#__PURE__*/React.createElement("div", {
+    className: "searching-bar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "searching-fill",
+    style: {
+      width: Math.min(95, sec / est * 100) + "%"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "searching-meta"
+  }, /*#__PURE__*/React.createElement("span", null, remain > 0 ? "Estimated time ~" + remain + "s" : "Wrapping up\u2026"), /*#__PURE__*/React.createElement("span", {
+    className: "searching-elapsed"
+  }, sec, "s elapsed")), /*#__PURE__*/React.createElement("div", {
+    className: "searching-note"
+  }, "Searching live retailers takes a moment \u2014 we read real pages for current prices.")));
+}
 function Result({
   data
 }) {
@@ -777,7 +806,7 @@ function Result({
       className: "row" + (best ? " best" : ""),
       key: i,
       style: {
-        animationDelay: i * 60 + "ms"
+        animationDelay: i * 150 + "ms"
       }
     }, /*#__PURE__*/React.createElement("div", {
       className: "rank"
