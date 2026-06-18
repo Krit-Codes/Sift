@@ -228,3 +228,13 @@
   .searching-meta { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); }
   .searching-elapsed { font-variant-numeric: tabular-nums; }
   .searching-note { margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  /* Searching checklist steps */
+  .searching-steps { margin: 14px 0 4px; display: flex; flex-direction: column; gap: 9px; }
+  .sstep { display: flex; align-items: center; gap: 10px; font-size: 13.5px; transition: color .3s ease, opacity .3s ease; }
+  .sstep-dot { width: 18px; height: 18px; border-radius: 999px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 11px; font-weight: 800; flex: none; transition: all .3s ease; }
+  .sstep.todo { color: var(--muted); opacity: .55; }
+  .sstep.active { color: var(--ink); font-weight: 600; }
+  .sstep.active .sstep-dot { border-color: var(--green); border-style: dashed; animation: spin 1.1s linear infinite; }
+  .sstep.done { color: var(--green-deep); }
+  .sstep.done .sstep-dot { background: var(--green); border-color: var(--green); color: #fff; }
+  @keyframes spin { to { transform: rotate(360deg); } }
