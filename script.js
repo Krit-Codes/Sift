@@ -701,15 +701,22 @@ function App() {
   }, "Click here to use your credits"))));
 }
 function Searching() {
-  const phases = ["Searching the entire internet\u2026", "Checking major retailers\u2026", "Reading product pages\u2026", "Comparing live prices\u2026", "Ranking the cheapest options\u2026", "Almost there\u2026"];
-  const est = 25;
+  const STAGES = ["Understanding your request", "Searching the web", "Scanning major retailers", "Comparing live prices", "Ranking the cheapest first"];
+  const THRESH = [2, 6, 11, 15, 20];
+  const STORES = ["Amazon", "Walmart", "Best Buy", "Target", "eBay", "Newegg", "Costco", "B&H Photo", "AliExpress", "Noon", "Carrefour", "Argos"];
+  const TIPS = ["Prices can change by the hour \u2014 this is live data, not a saved list.", "The cheapest sticker isn't always cheapest after shipping.", "Bigger pack sizes often cut the price per unit.", "Always confirm the price on the retailer's own page before buying.", "A model from last year is often a fraction of the newest one's price."];
+  const est = 20;
   const [sec, setSec] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setSec(s => s + 1), 1000);
     return () => clearInterval(t);
   }, []);
-  const phase = phases[Math.min(Math.floor(sec / 4), phases.length - 1)];
+  const done = THRESH.filter(x => sec >= x).length;
+  const active = Math.min(done, STAGES.length - 1);
   const remain = Math.max(0, est - sec);
+  const store = STORES[sec % STORES.length];
+  const tip = TIPS[Math.floor(sec / 4) % TIPS.length];
+  const headline = active === 2 ? "Checking " + store + "\u2026" : STAGES[active] + "\u2026";
   return /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
@@ -720,20 +727,30 @@ function Searching() {
     className: "dots"
   }, /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null), /*#__PURE__*/React.createElement("i", null)), /*#__PURE__*/React.createElement("span", {
     className: "searching-msg"
-  }, phase)), /*#__PURE__*/React.createElement("div", {
+  }, headline)), /*#__PURE__*/React.createElement("div", {
     className: "searching-bar"
   }, /*#__PURE__*/React.createElement("div", {
     className: "searching-fill",
     style: {
-      width: Math.min(95, sec / est * 100) + "%"
+      width: Math.min(96, sec / est * 100) + "%"
     }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "searching-steps"
+  }, STAGES.map((s, i) => {
+    const state = i < done ? "done" : i === active ? "active" : "todo";
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      className: "sstep " + state
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "sstep-dot"
+    }, i < done ? "\u2713" : ""), /*#__PURE__*/React.createElement("span", null, s));
   })), /*#__PURE__*/React.createElement("div", {
     className: "searching-meta"
   }, /*#__PURE__*/React.createElement("span", null, remain > 0 ? "Estimated time ~" + remain + "s" : "Wrapping up\u2026"), /*#__PURE__*/React.createElement("span", {
     className: "searching-elapsed"
   }, sec, "s elapsed")), /*#__PURE__*/React.createElement("div", {
     className: "searching-note"
-  }, "Searching live retailers takes a moment \u2014 we read real pages for current prices.")));
+  }, "\uD83D\uDCA1 ", tip)));
 }
 function Result({
   data
