@@ -161,13 +161,14 @@ function relTime(ts) {
   if (d < 7) return d + "d ago";
   return new Date(ts).toLocaleDateString();
 }
-async function api(body) {
+async function api(body, signal) {
   const r = await fetch("/api/search", {
     method: "POST",
     headers: {
       "content-type": "application/json"
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal
   });
   const raw = await r.text();
   let d;
@@ -190,6 +191,13 @@ function App() {
   const [activeId, setActiveId] = useState(initial[0].id);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const abortRef = useRef(null);
+  function stopSearch() {
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = null;
+    updateTurns(t => t.filter(x => x.status !== "loading"));
+    setBusy(false);
+  }
   const [gate, setGate] = useState(null); // null | "capped"
   const [view, setView] = useState("app"); // "app" | "plans"
   const [drawer, setDrawer] = useState(false); // history drawer open?
@@ -278,11 +286,13 @@ function App() {
       status: "loading"
     }], extra);
     setBusy(true);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
       const data = await api({
         mode: "price",
         item: withCountry(displayItem)
-      });
+      }, ctrl.signal);
       spendCredit();
       updateTurns(t => t.map((x, j) => j === idx ? {
         ...x,
@@ -290,6 +300,7 @@ function App() {
         data
       } : x));
     } catch (e) {
+      if (e.name === "AbortError") return; // user stopped it; stopSearch cleaned up
       if (e.capped) {
         setGate("capped");
         updateTurns(t => t.filter((_, j) => j !== idx));
@@ -299,6 +310,7 @@ function App() {
         error: e.message
       } : x));
     } finally {
+      abortRef.current = null;
       setBusy(false);
     }
   }
@@ -332,11 +344,13 @@ function App() {
       status: "thinking"
     }], extra);
     setBusy(true);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
       const c = await api({
         mode: "clarify",
         item
-      });
+      }, ctrl.signal);
       if (c && c.clarify && Array.isArray(c.questions) && c.questions.length) {
         updateTurns(t => t.map((x, j) => j === idx ? {
           type: "clarify",
@@ -345,6 +359,7 @@ function App() {
           questions: c.questions,
           answers: {}
         } : x));
+        abortRef.current = null;
         setBusy(false);
       } else {
         updateTurns(t => t.map((x, j) => j === idx ? {
@@ -355,7 +370,7 @@ function App() {
         const data = await api({
           mode: "price",
           item: withCountry(item)
-        });
+        }, ctrl.signal);
         spendCredit();
         updateTurns(t => t.map((x, j) => j === idx ? {
           type: "search",
@@ -363,9 +378,11 @@ function App() {
           status: "done",
           data
         } : x));
+        abortRef.current = null;
         setBusy(false);
       }
     } catch (e) {
+      if (e.name === "AbortError") return; // user stopped it; stopSearch cleaned up
       if (e.capped) {
         setGate("capped");
         updateTurns(t => t.filter((_, j) => j !== idx));
@@ -375,6 +392,7 @@ function App() {
         status: "error",
         error: e.message
       } : x));
+      abortRef.current = null;
       setBusy(false);
     }
   }
@@ -590,10 +608,23 @@ function App() {
     onKeyDown: e => e.key === "Enter" && submit(input),
     placeholder: "What are you looking to buy?",
     disabled: busy
-  }), /*#__PURE__*/React.createElement("button", {
+  }), busy ? /*#__PURE__*/React.createElement("button", {
+    className: "send stop",
+    onClick: stopSearch,
+    "aria-label": "Stop search"
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    fill: "currentColor"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "7",
+    y: "7",
+    width: "10",
+    height: "10",
+    rx: "2"
+  }))) : /*#__PURE__*/React.createElement("button", {
     className: "send",
     onClick: () => submit(input),
-    disabled: busy || !input.trim(),
+    disabled: !input.trim(),
     "aria-label": "Search"
   }, /*#__PURE__*/React.createElement("svg", {
     viewBox: "0 0 24 24",
@@ -701,11 +732,11 @@ function App() {
   }, "Click here to use your credits"))));
 }
 function Searching() {
-  const STAGES = ["Understanding your request", "Searching the web", "Scanning major retailers", "Comparing live prices", "Ranking the cheapest first"];
-  const THRESH = [2, 6, 11, 15, 20];
+  const STAGES = ["Understanding your request", "Searching the web", "Scanning major retailers", "Reading product pages", "Comparing live prices", "Checking stock & shipping", "Ranking the cheapest first"];
+  const THRESH = [2, 5, 9, 13, 17, 21, 26];
   const STORES = ["Amazon", "Walmart", "Best Buy", "Target", "eBay", "Newegg", "Costco", "B&H Photo", "AliExpress", "Noon", "Carrefour", "Argos"];
   const TIPS = ["Prices can change by the hour \u2014 this is live data, not a saved list.", "The cheapest sticker isn't always cheapest after shipping.", "Bigger pack sizes often cut the price per unit.", "Always confirm the price on the retailer's own page before buying.", "A model from last year is often a fraction of the newest one's price."];
-  const est = 20;
+  const est = 24;
   const [sec, setSec] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setSec(s => s + 1), 1000);
@@ -716,7 +747,10 @@ function Searching() {
   const remain = Math.max(0, est - sec);
   const store = STORES[sec % STORES.length];
   const tip = TIPS[Math.floor(sec / 4) % TIPS.length];
-  const headline = active === 2 ? "Checking " + store + "\u2026" : STAGES[active] + "\u2026";
+  // Eases toward (but never reaches) 99% so the bar always looks like it's
+  // moving until the real results arrive and replace this screen.
+  const pct = Math.round(99 * (1 - Math.exp(-sec / 10)));
+  const headline = active === 2 || active === 3 ? "Checking " + store + "\u2026" : STAGES[active] + "\u2026";
   return /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
@@ -732,7 +766,7 @@ function Searching() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "searching-fill",
     style: {
-      width: Math.min(96, sec / est * 100) + "%"
+      width: pct + "%"
     }
   })), /*#__PURE__*/React.createElement("div", {
     className: "searching-steps"
