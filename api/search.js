@@ -5,6 +5,21 @@
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const VERSION = "2023-06-01";
 
+// ── Quotas & cost control (durable, backed by Upstash Redis) ───────────────
+// Two layers protect your wallet:
+//   1. FREE_ASKS  — each visitor (per IP) gets this many price searches, then
+//                   the API returns { paywall: true } and the UI shows the
+//                   upgrade screen. This is the per-user limit.
+//   2. DAILY_MAX  — a hard ceiling on TOTAL price searches across EVERYONE per
+//                   day, so even a flood can't run your bill past it.
+// Counters live in Upstash Redis (free tier) so they survive across serverless
+// instances. If Upstash env vars are absent, it falls back to in-memory
+// counters — fine for local dev, but NOT durable in production.
+//
+// Set these in your host's environment variables:
+//   UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN   (from upstash.com)
+// Optional overrides:
+//   FREE_ASKS (default 3), DAILY_MAX (default 500), FREE_WINDOW_DAYS (default 30)
 const FREE_ASKS = parseInt(process.env.FREE_ASKS || "0", 10);
 const DAILY_MAX = parseInt(process.env.DAILY_MAX || "500", 10);
 const FREE_TTL = parseInt(process.env.FREE_WINDOW_DAYS || "30", 10) * 86400; // seconds
@@ -12,6 +27,7 @@ const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const REDIS_ON = !!(REDIS_URL && REDIS_TOKEN);
 
+// Talk to Upstash over its REST API (one command per call, e.g. ["INCR", key]).
 async function redis(cmd) {
   const r = await fetch(REDIS_URL, {
     method: "POST",
@@ -23,7 +39,8 @@ async function redis(cmd) {
   return d.result;
 }
 
-const mem = new Map();
+// In-memory fallback (per instance, resets on cold start). Dev only.
+const mem = new Map(); // key -> { n, exp }
 function memIncr(key, ttl) {
   const now = Date.now();
   const cur = mem.get(key);
@@ -39,7 +56,7 @@ function memDecr(key) {
 async function incr(key, ttl) {
   if (!REDIS_ON) return memIncr(key, ttl);
   const n = await redis(["INCR", key]);
-  if (n === 1) await redis(["EXPIRE", key, ttl]);
+  if (n === 1) await redis(["EXPIRE", key, ttl]); // set TTL only on first write
   return n;
 }
 async function decr(key) {
@@ -47,6 +64,7 @@ async function decr(key) {
   return redis(["DECR", key]);
 }
 
+// ── Prompts (kept server-side) ─────────────────────────────────────────────
 const SYSTEM =
   "You are Sift, a sharp, honest shopping assistant. Your job is to find where a product can be bought for the lowest current price. Always use web search for up-to-date prices and stock. Never invent prices, stores, or links. Prefer reputable retailers.";
 
@@ -156,8 +174,9 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // mode === "price" — the one that costs money. Per-user access is gated by
-    // CREDITS in the browser. The server enforces a global daily spend cap.
+    // mode === "price" — this is the one that costs money, so meter it here.
+    // Per-user access is gated by CREDITS in the browser (frontend). The server
+    // enforces a global daily spend cap so a bad day can't drain the card.
     {
       const day = new Date().toISOString().slice(0, 10);
       const dayKey = `sift:day:${day}`;
@@ -174,7 +193,7 @@ module.exports = async function handler(req, res) {
       max_tokens: 1100,
       system: SYSTEM,
       messages: [{ role: "user", content: pricePrompt(item) }],
-      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 1 }],
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3 }],
     });
     const parsed = extractJSON(text);
     if (parsed) {
