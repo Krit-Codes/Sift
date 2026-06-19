@@ -349,7 +349,8 @@ function App() {
     try {
       const c = await api({
         mode: "clarify",
-        item
+        item,
+        country
       }, ctrl.signal);
       if (c && c.clarify && Array.isArray(c.questions) && c.questions.length) {
         updateTurns(t => t.map((x, j) => j === idx ? {
