@@ -174,7 +174,7 @@ module.exports = async function handler(req, res) {
       max_tokens: 1100,
       system: SYSTEM,
       messages: [{ role: "user", content: pricePrompt(item) }],
-      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 2 }],
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 1 }],
     });
     const parsed = extractJSON(text);
     if (parsed) {
