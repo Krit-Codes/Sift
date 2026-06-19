@@ -68,21 +68,26 @@ async function decr(key) {
 const SYSTEM =
   "You are Sift, a sharp, honest shopping assistant. Your job is to find where a product can be bought for the lowest current price. Always use web search for up-to-date prices and stock. Never invent prices, stores, or links. Prefer reputable retailers.";
 
-function clarifyPrompt(item) {
-  return `The user wants to buy: "${item}".
-If this is a configurable product category where price depends heavily on specs or variants (e.g. desktop or gaming PC, laptop, phone, tablet, graphics card, TV, monitor, camera, smartwatch, etc.), respond with JSON asking 2-4 short multiple-choice questions to narrow it down. Otherwise respond with {"clarify": false}.
+function clarifyPrompt(item, country) {
+  const loc = country || "the user's country";
+  return `The user wants to buy: "${item}". They are shopping in ${loc}.
+Return ONLY raw JSON (no markdown) that asks a few quick questions to find the best LOCAL deal. Always set "clarify": true.
 
-JSON shape when clarifying:
+Shape:
 {
   "clarify": true,
-  "intro": "one short friendly line",
+  "intro": "A few quick questions to find your best local deal:",
   "questions": [
-    {"key": "use", "q": "What will you mainly use it for?", "options": ["Gaming", "Work / office", "Creative / editing", "No preference"]},
-    {"key": "gpu", "q": "Which graphics card?", "options": ["RTX 4060", "RTX 4070", "RTX 4080+", "No preference"]},
-    {"key": "storage", "q": "How much storage?", "options": ["512GB SSD", "1TB SSD", "2TB+", "No preference"]}
+    {"key": "fulfil", "q": "Delivery or in-store pickup?", "options": ["Delivery", "Pickup", "No preference"]},
+    {"key": "city", "q": "Which area are you nearest?", "options": ["...3-4 real major cities or areas in ${loc}...", "No preference"]},
+    {"key": "store", "q": "Any preferred store?", "options": ["...3-4 real popular retailers in ${loc}...", "No preference"]}
   ]
 }
-Rules: 3-5 options each, always include a "No preference" option, keep everything short. Return ONLY raw JSON, no markdown.`;
+Rules:
+- ALWAYS include those three questions, using REAL city names and REAL retailer names that exist in ${loc}.
+- If "${item}" is a configurable product (desktop/gaming PC, laptop, phone, tablet, TV, graphics card, monitor, camera, smartwatch, etc.), ADD 1-2 short spec questions (e.g. budget range, key spec) as well.
+- 3-5 options per question; ALWAYS end each question's options with "No preference".
+- Keep every label short. Return ONLY raw JSON, no markdown.`;
 }
 
 function pricePrompt(item) {
@@ -154,6 +159,7 @@ module.exports = async function handler(req, res) {
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
   const mode = body?.mode;
   const item = (body?.item || "").toString().trim().slice(0, 200);
+  const country = (body?.country || "").toString().trim().slice(0, 60);
 
   if (!item) { res.status(400).json({ error: "Please include an item to search for." }); return; }
   if (mode !== "clarify" && mode !== "price") { res.status(400).json({ error: "Invalid mode." }); return; }
@@ -163,7 +169,7 @@ module.exports = async function handler(req, res) {
       const text = await callAnthropic(key, {
         model: "claude-haiku-4-5",
         max_tokens: 700,
-        messages: [{ role: "user", content: clarifyPrompt(item) }],
+        messages: [{ role: "user", content: clarifyPrompt(item, country) }],
       });
       const parsed = extractJSON(text);
       if (parsed && parsed.clarify && Array.isArray(parsed.questions) && parsed.questions.length) {
