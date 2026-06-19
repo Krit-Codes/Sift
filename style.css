@@ -238,3 +238,7 @@
   .sstep.done { color: var(--green-deep); }
   .sstep.done .sstep-dot { background: var(--green); border-color: var(--green); color: #fff; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  /* Stop-search button (replaces send while searching) */
+  .send.stop { background: var(--ink); }
+  .send.stop:hover { background: #000; transform: none; }
+  .send.stop svg { width: 20px; height: 20px; }
